@@ -168,6 +168,54 @@ export default function CategoriesPage() {
       setEditingCategory(null);
       setPreviewUrl(null);
   };
+  let tableContent;
+
+if (loading) {
+  tableContent = (
+    <TableRow>
+      <TableCell colSpan={4} className="text-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+      </TableCell>
+    </TableRow>
+  );
+} else if (categories.length === 0) {
+  tableContent = (
+    <TableRow>
+      <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+        No hay categorías registradas.
+      </TableCell>
+    </TableRow>
+  );
+} else {
+  tableContent = categories.map((cat) => (
+    <TableRow key={cat.id}>
+      <TableCell>
+        <div className="w-12 h-12 bg-slate-100 rounded overflow-hidden border">
+          {cat.image_id ? (
+            <img
+              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_100,c_fill,q_auto/${cat.image_id}`}
+              alt={cat.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-300">
+              <ImageIcon size={16} />
+            </div>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{cat.name}</TableCell>
+      <TableCell className="text-slate-500 text-sm">/{cat.slug}</TableCell>
+      <TableCell className="text-right space-x-2">
+        <Button variant="ghost" size="icon" onClick={() => openModal(cat)}>
+          <Pencil className="h-4 w-4 text-blue-600" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => handleDelete(cat)}>
+          <Trash2 className="h-4 w-4 text-red-600" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  ));
 
   return (
     <div className="space-y-6">
@@ -192,50 +240,7 @@ export default function CategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                  </TableCell>
-                </TableRow>
-              ) : categories.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-slate-500">
-                    No hay categorías registradas.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                categories.map((cat) => (
-                  <TableRow key={cat.id}>
-                    <TableCell>
-                        <div className="w-12 h-12 bg-slate-100 rounded overflow-hidden border">
-                            {cat.image_id ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img 
-                                    src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_100,c_fill,q_auto/${cat.image_id}`} 
-                                    alt={cat.name}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                    <ImageIcon size={16} />
-                                </div>
-                            )}
-                        </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{cat.name}</TableCell>
-                    <TableCell className="text-slate-500 text-sm">/{cat.slug}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => openModal(cat)}>
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(cat)}>
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              {tableContent}
             </TableBody>
           </Table>
         </CardContent>
