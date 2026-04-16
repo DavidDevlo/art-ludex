@@ -256,58 +256,65 @@ export default function ProductWizard({ params }: { params: Promise<{ id: string
     const newM = formData.measurements.filter((_, i) => i !== index);
     updateField('measurements', newM);
   };
+  // Función auxiliar para limpiar imágenes (puedes ponerla fuera del componente o dentro)
+  const cleanupImages = async (
+    initialMain: string | null,
+    currentMain: string,
+    initialExtras: string[],
+    currentExtras: string[]
+  ) => {
+    // Limpiar imagen principal si cambió
+    if (initialMain && initialMain !== currentMain) {
+      await deleteImageFromCloudinary(initialMain);
+    }
+  
+    // Limpiar imágenes extra eliminadas
+    const removedExtras = initialExtras.filter(id => !currentExtras.includes(id));
+    if (removedExtras.length > 0) {
+      await Promise.all(removedExtras.map(id => deleteImageFromCloudinary(id)));
+    }
+  };
 
   // --- GUARDAR ---
-  const handleSave = async () => {
+   const handleSave = async () => {
+    // 1. Validaciones previas (Early Returns)
     if (!formData.name) return toast.error("Falta el nombre");
     if (formData.unit_price <= 0) return toast.error("El precio debe ser mayor a 0");
-
+  
     setLoading(true);
     try {
+      // 2. Generación de Slug (Usando replaceAll para cumplir con SonarQube)
       const slug = isNew 
-        ? `${formData.name.toLowerCase().replace(/ /g, '-')}-${Date.now()}`.replace(/[^\w-]+/g, '')
+        ? `${formData.name.toLowerCase().replaceAll(' ', '-')}-${Date.now()}`.replace(/[^\w-]+/g, '')
         : undefined;
-
+  
+      // 3. Preparación del Payload (simplificado con spread operator)
       const payload = {
-        name: formData.name,
-        category_id: formData.category_id,
-        description_short: formData.description_short,
-        description_long: formData.description_long,
-        unit_price: formData.unit_price,
-        wholesale_price: formData.wholesale_price,
-        capital_price: formData.capital_price,
-        display_price_label: formData.display_price_label,
-        stock: formData.stock,
-        has_embroidery: formData.has_embroidery,
-        state: formData.state,
-        measurements: formData.measurements,
-        main_image_id: formData.main_image_id,
-        extra_images: formData.extra_images,
+        ...formData,
         ...(slug && { slug })
       };
-
-      if (isNew) {
-        const { error } = await supabase.from('products').insert([payload]);
-        if (error) throw error;
-        toast.success("Producto Creado");
-      } else {
-        const { error } = await supabase.from('products').update(payload).eq('id', id);
-        if (error) throw error;
-        
-        // 1. Limpieza de imagen principal reemplazada
-        if (initialMainImageId && initialMainImageId !== formData.main_image_id) {
-            await deleteImageFromCloudinary(initialMainImageId);
-        }
-
-        // 2. Limpieza de imágenes extra que estaban guardadas pero el usuario quitó
-        const removedExtras = initialExtraImages.filter(id => !formData.extra_images.includes(id));
-        if (removedExtras.length > 0) {
-            await Promise.all(removedExtras.map(id => deleteImageFromCloudinary(id)));
-        }
-
-        toast.success("Producto Actualizado");
+  
+      // 4. Ejecución de la consulta en base de datos
+      const query = isNew 
+        ? supabase.from('products').insert([payload])
+        : supabase.from('products').update(payload).eq('id', id);
+  
+      const { error } = await query;
+      if (error) throw error;
+  
+      // 5. Lógica de limpieza post-guardado (solo si no es nuevo)
+      if (!isNew) {
+        await cleanupImages(
+          initialMainImageId,
+          formData.main_image_id,
+          initialExtraImages,
+          formData.extra_images
+        );
       }
+  
+      toast.success(isNew ? "Producto Creado" : "Producto Actualizado");
       router.push("/dashboard/products");
+  
     } catch (e: any) {
       toast.error("Error: " + e.message);
     } finally {
