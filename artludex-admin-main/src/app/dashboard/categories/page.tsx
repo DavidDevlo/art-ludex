@@ -281,7 +281,11 @@ export default function CategoriesPage() {
                   setFormData(prev => ({ 
                     ...prev, 
                     name: val, 
-                    slug: !editingCategory ? val.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '') : prev.slug 
+                    slug: !editingCategory 
+                      ? val.toLowerCase()
+                           .replaceAll(' ', '-') // Cambiado de .replace(/ /g, '-')
+                           .replaceAll(/[^\w-]+/g, '') // Aquí puedes mantener replace si es regex, pero Sonar prefiere consistencia
+                      : prev.slug 
                   }));
                 }}
               />
